@@ -1,0 +1,53 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "To urządzenie jest już skonfigurowane"
+    },
+    "error": {
+      "invalid_account_format": "Konto musi być wartością szesnastkową (0-9, A-F).",
+      "invalid_account_length": "Konto musi mieć od 3 do 16 znaków.",
+      "invalid_key_format": "Klucz musi być wartością szesnastkową (0-9, A-F).",
+      "invalid_key_length": "Klucz musi mieć 16, 24 lub 32 znaki.",
+      "invalid_ping": "Interwał testu musi wynosić od 1 do 1440 minut.",
+      "invalid_zones": "Musi być co najmniej 1 strefa.",
+      "unknown": "Nieoczekiwany błąd"
+    },
+    "step": {
+      "add_account": {
+        "title": "Dodaj kolejne konto na tym porcie",
+        "data": {
+          "account": "Konto (SIA-IP acct)",
+          "additional_account": "Dodaj kolejne konta",
+          "encryption_key": "Klucz SIA-IP",
+          "ping_interval": "Interwał testu łączności (min)",
+          "zones": "Liczba stref (partycji)"
+        }
+      },
+      "user": {
+        "title": "Centrala Satel (monitoring SIA DC-09)",
+        "description": "Home Assistant działa jako stacja monitorująca. Wpisz ten sam port, konto (SIA-IP acct) i klucz SIA-IP co w DLOADX → Monitorowanie.",
+        "data": {
+          "account": "Konto (SIA-IP acct)",
+          "additional_account": "Dodaj kolejne konta",
+          "encryption_key": "Klucz SIA-IP",
+          "ping_interval": "Interwał testu łączności (min)",
+          "port": "Port",
+          "protocol": "Protokół",
+          "zones": "Liczba stref (partycji)"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "options": {
+        "title": "Opcje Satel SIA",
+        "description": "Opcje dla konta: {account}",
+        "data": {
+          "ignore_timestamps": "Ignoruj kontrolę znacznika czasu zdarzeń",
+          "zones": "Liczba stref (partycji)"
+        }
+      }
+    }
+  }
+}

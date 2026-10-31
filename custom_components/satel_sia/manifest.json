@@ -1,0 +1,23 @@
+{
+  "domain": "satel_sia",
+  "name": "Satel SIA",
+  "codeowners": [
+    "@tomaszsluszniak"
+  ],
+  "config_flow": true,
+  "dependencies": [
+    "frontend",
+    "http"
+  ],
+  "documentation": "https://github.com/tomaszsluszniak/ha-satel-sia",
+  "integration_type": "hub",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/tomaszsluszniak/ha-satel-sia/issues",
+  "loggers": [
+    "custom_components.satel_sia"
+  ],
+  "requirements": [
+    "pycryptodome>=3.6.6"
+  ],
+  "version": "1.1.0"
+}

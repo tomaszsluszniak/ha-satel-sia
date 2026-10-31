@@ -1,0 +1,53 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Device is already configured"
+    },
+    "error": {
+      "invalid_account_format": "The account is not a hex value, please use only 0-9 and A-F.",
+      "invalid_account_length": "The account is not the right length, it has to be between 3 and 16 characters.",
+      "invalid_key_format": "The key is not a hex value, please use only 0-9 and A-F.",
+      "invalid_key_length": "The key is not the right length, it has to be 16, 24 or 32 hex characters.",
+      "invalid_ping": "The ping interval needs to be between 1 and 1440 minutes.",
+      "invalid_zones": "There needs to be at least 1 zone.",
+      "unknown": "Unexpected error"
+    },
+    "step": {
+      "add_account": {
+        "data": {
+          "account": "Account ID",
+          "additional_account": "Additional accounts",
+          "encryption_key": "Encryption key",
+          "ping_interval": "Ping interval (min)",
+          "zones": "Number of zones for the account"
+        },
+        "title": "Add another account to the current port"
+      },
+      "user": {
+        "data": {
+          "account": "Account ID",
+          "additional_account": "Additional accounts",
+          "encryption_key": "Encryption key",
+          "ping_interval": "Ping interval (min)",
+          "port": "Port",
+          "protocol": "Protocol",
+          "zones": "Number of zones for the account"
+        },
+        "title": "Satel alarm panel (SIA DC-09 monitoring)",
+        "description": "Home Assistant acts as a monitoring station. Use the same port, account (SIA-IP acct) and SIA-IP key as in DLOADX → Monitoring."
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "options": {
+        "data": {
+          "ignore_timestamps": "Ignore the timestamp check of the SIA events",
+          "zones": "Number of zones for the account"
+        },
+        "description": "Set the options for account: {account}",
+        "title": "Satel SIA options"
+      }
+    }
+  }
+}
