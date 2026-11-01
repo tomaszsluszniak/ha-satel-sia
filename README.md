@@ -98,8 +98,6 @@ title: Alarm
 partitions:
   - entity: alarm_control_panel.6514_1234_zone_1_alarm
   - entity: alarm_control_panel.6514_1234_zone_2_alarm
-    mode: switch          # optional: partition used only to drive an output, shown as On / Off
-    icon: mdi:power       # optional, icon for mode: switch
     # name: …             # optional, overrides the entity name
 connectivity: binary_sensor.6514_1234_connectivity   # optional
 power: binary_sensor.6514_1234_power                 # optional
@@ -112,8 +110,7 @@ It shows each partition (armed / disarmed / alarm, who and since when), a pulsin
 a partition is in alarm, chips for panel connectivity and mains power, and recent events built
 from history. When a partition drops to `unknown`/`unavailable` between SIA tests, the card keeps
 showing the last real state, marked with a dashed border. Tap anything for the more-info dialog.
-A partition with `mode: switch` (for example one that only drives a relay output) is shown as
-On / Off with its own icon and does not count as "armed" in the header. The card is read-only, because SIA cannot arm or disarm the panel. Polish and English.
+The card is read-only, because SIA cannot arm or disarm the panel. Polish and English.
 
 ## Automation blueprints
 
@@ -122,7 +119,7 @@ pick your account, notify action and options in the form.
 
 | Blueprint | | |
 |---|---|---|
-| **Notifications**: alarms (critical), tamper, arming / disarming, system events (mains, battery, restart…), output-only partitions reported as on / off, Polish or English | [![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ftomaszsluszniak%2Fha-satel-sia%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fsatel_sia%2Fnotifications.yaml) | [source](blueprints/automation/satel_sia/notifications.yaml) |
+| **Notifications**: alarms (critical), tamper, arming / disarming, system events (mains, battery, restart…), Polish or English | [![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ftomaszsluszniak%2Fha-satel-sia%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fsatel_sia%2Fnotifications.yaml) | [source](blueprints/automation/satel_sia/notifications.yaml) |
 | **Connection to the panel lost**: the panel has not reported for a set time, and when it is back | [![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ftomaszsluszniak%2Fha-satel-sia%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fsatel_sia%2Fconnection_lost.yaml) | [source](blueprints/automation/satel_sia/connection_lost.yaml) |
 
 ## Events

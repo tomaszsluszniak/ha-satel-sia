@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0
+
+- Removed output-only partitions: every partition is shown and notified the same way, as the
+  panel reports it (card option `mode: switch` and the blueprint input "Output-only partitions"
+  are gone; existing configs keep working, the options are ignored).
+
 ## 1.2.1
 
 - Notifications blueprint: partition numbers and names made of digits are handled as text

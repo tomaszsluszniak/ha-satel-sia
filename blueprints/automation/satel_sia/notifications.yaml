@@ -7,10 +7,6 @@ blueprint:
     battery, restart, service mode…). Partition and user names come from the
     panel ("SIA – send partition name / source name" in DLOADX) or from the
     entity names in Home Assistant.
-
-
-    Partitions used only to drive an output (for example a relay) can be
-    reported as switched on / off instead of armed / disarmed.
   domain: automation
   author: tomaszsluszniak
   source_url: https://github.com/tomaszsluszniak/ha-satel-sia/blob/main/blueprints/automation/satel_sia/notifications.yaml
@@ -73,17 +69,6 @@ blueprint:
       icon: mdi:cog
       collapsed: true
       input:
-        output_partitions:
-          name: Output-only partitions
-          description: >-
-            Partition numbers used only to switch an output. Their arming and
-            disarming is reported as switched on / off.
-          default: []
-          selector:
-            select:
-              multiple: true
-              custom_value: true
-              options: ["1", "2", "3", "4", "5", "6", "7", "8"]
         silent_codes:
           name: Codes without notification
           description: >-
@@ -120,7 +105,6 @@ variables:
   language: !input language
   critical_alarms: !input critical_alarms
   notify_arming: !input notify_arming
-  output_partitions: !input output_partitions
   silent_codes: !input silent_codes
   last_code_helper: !input last_code_helper
   code: "{{ trigger.event.data.code or '' }}"
@@ -148,8 +132,6 @@ actions:
           by: "Przez: {}"
           armed: "{}: załączenie czuwania"
           disarmed: "{}: wyłączenie czuwania"
-          switched_on: "{}: włączenie"
-          switched_off: "{}: wyłączenie"
           alarm: ALARM – {}
           tamper: Sabotaż – {}
           info: "Alarm: {}"
@@ -189,8 +171,6 @@ actions:
           by: "By: {}"
           armed: "{}: armed"
           disarmed: "{}: disarmed"
-          switched_on: "{}: on"
-          switched_off: "{}: off"
           alarm: ALARM – {}
           tamper: Tamper – {}
           info: "Alarm: {}"
@@ -211,7 +191,6 @@ actions:
         {{ satel.get('source_name')
            or ('#' ~ satel.number if satel.get('number') and (ri | string) not in ['', '0'] else '') }}
       description: "{{ t.codes.get(code) or sia_description or code }}"
-      is_output: "{{ (ri | string) in (output_partitions | map('string') | list) }}"
   - if:
       - condition: template
         value_template: "{{ last_code_helper | length > 0 }}"
@@ -261,8 +240,7 @@ actions:
         sequence:
           - action: "{{ notify_action }}"
             data:
-              title: >-
-                {{ ('🟢 ' ~ t.switched_on if is_output else '🔒 ' ~ t.armed).replace('{}', partition | string) }}
+              title: "🔒 {{ t.armed.replace('{}', partition | string) }}"
               message: "{{ t.by.replace('{}', who | string) if who else description }}"
               data:
                 tag: "satel_sia_{{ ri }}"
@@ -274,8 +252,7 @@ actions:
         sequence:
           - action: "{{ notify_action }}"
             data:
-              title: >-
-                {{ ('⚫ ' ~ t.switched_off if is_output else '🔓 ' ~ t.disarmed).replace('{}', partition | string) }}
+              title: "🔓 {{ t.disarmed.replace('{}', partition | string) }}"
               message: "{{ t.by.replace('{}', who | string) if who else description }}"
               data:
                 tag: "satel_sia_{{ ri }}"

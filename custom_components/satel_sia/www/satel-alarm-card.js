@@ -5,7 +5,7 @@
  * https://github.com/tomaszsluszniak/ha-satel-sia
  */
 
-const CARD_VERSION = "1.2.0";
+const CARD_VERSION = "1.3.0";
 const CARD_TAG = "satel-alarm-card";
 
 const I18N = {
@@ -52,10 +52,6 @@ const I18N = {
     today: "",
     yesterday: "wczoraj",
     partition_n: "Strefa {n}",
-    switch_on: "Włączone",
-    switch_off: "Wyłączone",
-    ev_switch_on: "{p}: włączenie",
-    ev_switch_off: "{p}: wyłączenie",
   },
   en: {
     title: "Alarm",
@@ -100,10 +96,6 @@ const I18N = {
     today: "",
     yesterday: "yesterday",
     partition_n: "Partition {n}",
-    switch_on: "On",
-    switch_off: "Off",
-    ev_switch_on: "{p} on",
-    ev_switch_off: "{p} off",
   },
 };
 
@@ -309,11 +301,6 @@ class SatelAlarmCard extends HTMLElement {
         prev = kind;
         if (firstRow && r.t <= Date.now() - this._config.hours * 3600 * 1000 + 1000) continue;
         const who = whoFromAttrs(r.a);
-        if (p.mode === "switch" && (kind === "armed" || kind === "disarmed")) {
-          const on = kind === "armed";
-          out.push({ t: r.t, icon: p.icon || "mdi:power", tone: on ? "accent" : "muted", text: this._t(on ? "ev_switch_on" : "ev_switch_off", { p: name }), who });
-          continue;
-        }
         if (kind === "armed") out.push({ t: r.t, icon: "mdi:lock", tone: "danger", text: this._t("ev_armed", { p: name }), who });
         else if (kind === "disarmed") out.push({ t: r.t, icon: "mdi:lock-open-variant", tone: "success", text: this._t("ev_disarmed", { p: name }), who });
         else if (kind === "triggered") {
@@ -409,10 +396,7 @@ class SatelAlarmCard extends HTMLElement {
       const s = x.state;
       let tone = "neutral", icon = "mdi:help-circle-outline", label = this._t("unknown"), sub = this._t("unknown_hint");
       const who = whoFromAttrs(x.attrs);
-      if (x.p.mode === "switch" && (isArmed(s) || s === "disarmed")) {
-        const on = isArmed(s);
-        tone = on ? "accent" : "off"; icon = x.p.icon || "mdi:power"; label = this._t(on ? "switch_on" : "switch_off");
-      } else if (isArmed(s)) {
+      if (isArmed(s)) {
         tone = "danger"; icon = s === "armed_night" ? "mdi:shield-moon" : "mdi:lock"; label = this._t(s);
       } else if (s === "disarmed") {
         tone = "success"; icon = "mdi:lock-open-variant"; label = this._t("disarmed");
@@ -477,7 +461,7 @@ class SatelAlarmCard extends HTMLElement {
     }
 
     const title = this._config.title ?? this._t("title");
-    const headIcon = alarms.length ? "mdi:shield-alert" : parts.some((x) => x.p.mode !== "switch" && isArmed(x.state)) ? "mdi:shield-lock" : "mdi:shield-home-outline";
+    const headIcon = alarms.length ? "mdi:shield-alert" : parts.some((x) => isArmed(x.state)) ? "mdi:shield-lock" : "mdi:shield-home-outline";
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -515,10 +499,6 @@ class SatelAlarmCard extends HTMLElement {
         .tile.success ha-icon, .tile.success .state { color: var(--success-color); }
         .tile.warning { background: color-mix(in srgb, var(--warning-color) 16%, transparent); border-color: color-mix(in srgb, var(--warning-color) 40%, transparent); }
         .tile.warning ha-icon, .tile.warning .state { color: var(--warning-color); }
-        .tile.accent { background: color-mix(in srgb, var(--primary-color) 14%, transparent); border-color: color-mix(in srgb, var(--primary-color) 35%, transparent); }
-        .tile.accent ha-icon, .tile.accent .state { color: var(--primary-color); }
-        .tile.off { border: 1px solid var(--divider-color); }
-        .tile.off ha-icon, .tile.off .state { color: var(--secondary-text-color); }
         .tile.alarm { background: var(--error-color); color: var(--text-primary-color, #fff); }
         .tile.neutral { border: 1px dashed var(--divider-color); }
         .tile.neutral ha-icon, .tile.neutral .state { color: var(--secondary-text-color); }
@@ -534,8 +514,6 @@ class SatelAlarmCard extends HTMLElement {
         .ev ha-icon.danger, .ev ha-icon.alarm { color: var(--error-color); }
         .ev ha-icon.success { color: var(--success-color); }
         .ev ha-icon.warning { color: var(--warning-color); }
-        .ev ha-icon.accent { color: var(--primary-color); }
-        .ev ha-icon.muted { color: var(--secondary-text-color); }
         .ev-x { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .ev-who { color: var(--secondary-text-color); }
         .empty { font-size: 13px; color: var(--secondary-text-color); }

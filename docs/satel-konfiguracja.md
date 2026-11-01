@@ -124,8 +124,6 @@ type: custom:satel-alarm-card
 partitions:
   - entity: alarm_control_panel.6514_1234_zone_1_alarm
   - entity: alarm_control_panel.6514_1234_zone_2_alarm
-    mode: switch        # strefa tylko do sterowania wyjściem: Włączone / Wyłączone
-    icon: mdi:power
 connectivity: binary_sensor.6514_1234_connectivity
 power: binary_sensor.6514_1234_power
 show_events: true       # true | false | collapsed
@@ -184,7 +182,6 @@ automatyzację (Ustawienia → Automatyzacje i sceny → Blueprinty → wybierz 
 | Language | `Polski` |
 | Critical alarm notifications | alarmy przebijają tryb cichy na iOS (trzeba na to zezwolić w aplikacji) |
 | Notify about arming and disarming | powiadomienia o załączeniu i wyłączeniu czuwania |
-| Output-only partitions | numery stref, które tylko sterują wyjściem (np. przekaźnikiem); zamiast czuwania przyjdzie „włączenie / wyłączenie” |
 | Codes without notification | kody bez powiadomień; domyślnie test łączności, końce naruszeń i problemy z transmisją (YS/YK) |
 | Last code helper | opcjonalny pomocnik `input_text`, w którym zapisuje się ostatni kod |
 
@@ -193,7 +190,6 @@ Co przychodzi:
 - alarm (włamanie, pożar, napad, przymus, medyczny): powiadomienie krytyczne, np. „🚨 ALARM – Parter · Alarm włamaniowy · Salon PIR”;
 - sabotaż: powiadomienie pilne;
 - załączenie i wyłączenie czuwania: „🔒 Parter: załączenie czuwania · Przez: Jan”;
-- strefa „tylko wyjście”: „🟢 Garaż: włączenie”;
 - pozostałe (awaria 230 V, akumulator, restart, tryb serwisowy…): „ℹ️ Alarm: Awaria zasilania 230 V”.
 
 ### Satel SIA – brak łączności z centralą
