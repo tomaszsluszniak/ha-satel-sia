@@ -7,8 +7,11 @@ Receive events from **Satel** alarm panels (VERSA, VERSA IP, INTEGRA, PERFECTA) 
 using **SIA DC-09 monitoring** over TCP/UDP. Home Assistant acts as a monitoring station (ARC), so no
 ETHM-1 Plus integration protocol is required. This is the only network option for VERSA panels.
 
-> 🇵🇱 Polski przewodnik konfiguracji centrali (DLOADX) i przykładowe automatyzacje:
-> [docs/satel-konfiguracja.md](docs/satel-konfiguracja.md)
+[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=tomaszsluszniak&repository=ha-satel-sia&category=integration)
+[![Open your Home Assistant instance and start setting up Satel SIA.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=satel_sia)
+
+> 🇵🇱 Polski przewodnik konfiguracji centrali (DLOADX), blueprinty powiadomień i rozwiązywanie
+> problemów: [docs/satel-konfiguracja.md](docs/satel-konfiguracja.md)
 
 ## Why not the built-in SIA integration?
 
@@ -36,9 +39,17 @@ patched `pysiaalarm`:
 
 ## Installation (HACS)
 
-1. HACS → ⋮ → **Custom repositories** → add `https://github.com/tomaszsluszniak/ha-satel-sia`, type **Integration**.
-2. Install **Satel SIA** and restart Home Assistant.
-3. Settings → Devices & services → **Add integration** → **Satel SIA**.
+1. Open the repository in HACS (it is added as a custom repository on the way):
+
+   [![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=tomaszsluszniak&repository=ha-satel-sia&category=integration)
+
+   Or manually: HACS → ⋮ → **Custom repositories** → `https://github.com/tomaszsluszniak/ha-satel-sia`, type **Integration**.
+2. **Download** Satel SIA and restart Home Assistant.
+3. Add the integration:
+
+   [![Open your Home Assistant instance and start setting up Satel SIA.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=satel_sia)
+
+   Or Settings → Devices & services → **Add integration** → **Satel SIA**.
 
 Manual install: copy `custom_components/satel_sia` to `/config/custom_components/` and restart.
 
@@ -92,8 +103,9 @@ partitions:
     # name: …             # optional, overrides the entity name
 connectivity: binary_sensor.6514_1234_connectivity   # optional
 power: binary_sensor.6514_1234_power                 # optional
-events: 6        # recent events to list, 0 hides the list
-hours: 24        # how far back to look for events
+show_events: true   # true | false | collapsed (list folded, tap the header to open)
+events: 6           # how many recent events to list
+hours: 24           # how far back to look for events
 ```
 
 It shows each partition (armed / disarmed / alarm, who and since when), a pulsing banner while
@@ -102,6 +114,16 @@ from history. When a partition drops to `unknown`/`unavailable` between SIA test
 showing the last real state, marked with a dashed border. Tap anything for the more-info dialog.
 A partition with `mode: switch` (for example one that only drives a relay output) is shown as
 On / Off with its own icon and does not count as "armed" in the header. The card is read-only, because SIA cannot arm or disarm the panel. Polish and English.
+
+## Automation blueprints
+
+Ready-made notification automations. Import, then create an automation from the blueprint and
+pick your account, notify action and options in the form.
+
+| Blueprint | | |
+|---|---|---|
+| **Notifications**: alarms (critical), tamper, arming / disarming, system events (mains, battery, restart…), output-only partitions reported as on / off, Polish or English | [![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ftomaszsluszniak%2Fha-satel-sia%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fsatel_sia%2Fnotifications.yaml) | [source](blueprints/automation/satel_sia/notifications.yaml) |
+| **Connection to the panel lost**: the panel has not reported for a set time, and when it is back | [![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ftomaszsluszniak%2Fha-satel-sia%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fsatel_sia%2Fconnection_lost.yaml) | [source](blueprints/automation/satel_sia/connection_lost.yaml) |
 
 ## Events
 
@@ -125,7 +147,7 @@ sia_code:
 timestamp: "2026-10-31T19:16:14+00:00"
 ```
 
-See [docs/satel-konfiguracja.md](docs/satel-konfiguracja.md) for a complete notification automation.
+For notifications use the [blueprints](#automation-blueprints); the event data above is what they read.
 
 ## Migrating from the built-in `sia` (or another SIA fork)
 

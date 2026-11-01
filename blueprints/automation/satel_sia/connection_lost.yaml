@@ -1,0 +1,111 @@
+blueprint:
+  name: Satel SIA – connection to the panel lost
+  description: >-
+    Notifies when the Satel panel has not reported to Home Assistant for a set
+    time (monitoring switched off in DLOADX, network or ETHM failure, power
+    loss), and again when the connection is back. While the connection is
+    lost, alarm notifications cannot arrive.
+  domain: automation
+  author: tomaszsluszniak
+  source_url: https://github.com/tomaszsluszniak/ha-satel-sia/blob/main/blueprints/automation/satel_sia/connection_lost.yaml
+  homeassistant:
+    min_version: "2026.10.0"
+  input:
+    connectivity:
+      name: Connectivity sensor
+      description: The connectivity binary sensor of the Satel SIA account.
+      selector:
+        entity:
+          domain: binary_sensor
+          integration: satel_sia
+          device_class: connectivity
+    delay:
+      name: Delay
+      description: How long the panel must stay silent before notifying.
+      default:
+        minutes: 10
+      selector:
+        duration:
+    notify_action:
+      name: Notify action
+      description: >-
+        Action used to send notifications, e.g. notify.mobile_app_phone or a
+        notify group such as notify.family.
+      default: notify.notify
+      selector:
+        text:
+    language:
+      name: Language
+      default: pl
+      selector:
+        select:
+          options:
+            - label: Polski
+              value: pl
+            - label: English
+              value: en
+
+mode: single
+
+triggers:
+  - trigger: state
+    entity_id: !input connectivity
+    to: "off"
+    for: !input delay
+    id: lost
+  - trigger: state
+    entity_id: !input connectivity
+    from: "off"
+    to: "on"
+    id: back
+
+variables:
+  notify_action: !input notify_action
+  language: !input language
+  delay: !input delay
+  delay_s: >-
+    {{ (delay.get('days', 0) * 86400 + delay.get('hours', 0) * 3600
+        + delay.get('minutes', 0) * 60 + delay.get('seconds', 0)) | int }}
+  texts:
+    pl:
+      lost_title: "⚠️ Alarm: brak łączności z centralą"
+      lost_message: "Centrala nie odzywa się od {} min. Powiadomienia o alarmie nie będą docierać."
+      back_title: "✅ Alarm: łączność przywrócona"
+      back_message: "Centrala znów wysyła zdarzenia (przerwa: {} min)."
+    en:
+      lost_title: "⚠️ Alarm: connection to the panel lost"
+      lost_message: "The panel has not reported for {} min. Alarm notifications cannot arrive."
+      back_title: "✅ Alarm: connection restored"
+      back_message: "The panel is reporting again (outage: {} min)."
+  t: "{{ texts[language] if language in texts else texts.en }}"
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: lost
+        sequence:
+          - action: "{{ notify_action }}"
+            data:
+              title: "{{ t.lost_title }}"
+              message: "{{ t.lost_message.replace('{}', ((delay_s / 60) | round(0) | int) | string) }}"
+              data:
+                tag: satel_sia_connection
+                push:
+                  interruption-level: time-sensitive
+      - conditions:
+          - condition: trigger
+            id: back
+          - alias: Only after an outage that was reported
+            condition: template
+            value_template: >-
+              {{ (now() - trigger.from_state.last_changed).total_seconds() >= delay_s }}
+        sequence:
+          - action: "{{ notify_action }}"
+            data:
+              title: "{{ t.back_title }}"
+              message: >-
+                {{ t.back_message.replace('{}', (((now() - trigger.from_state.last_changed).total_seconds() / 60)
+                   | round(0) | int) | string) }}
+              data:
+                tag: satel_sia_connection

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0
+
+- Automation blueprints: notifications (alarms, tamper, arming, system events, output-only
+  partitions, Polish / English) and connection to the panel lost; README import buttons.
+- Card: `show_events: true | false | collapsed` to show, hide or fold the recent events list.
+- README: My Home Assistant buttons to open the repository in HACS and to add the integration.
+
 ## 1.1.0
 
 - Partition entities and their devices are named after the partition name sent by the panel (kept across restarts; names set in Home Assistant take precedence).

@@ -1,0 +1,292 @@
+blueprint:
+  name: Satel SIA – notifications
+  description: >-
+    Push notifications for events from a Satel panel received by the Satel SIA
+    integration: critical notifications for alarms, time-sensitive ones for
+    tamper, and regular ones for arming, disarming and system events (mains,
+    battery, restart, service mode…). Partition and user names come from the
+    panel ("SIA – send partition name / source name" in DLOADX) or from the
+    entity names in Home Assistant.
+
+
+    Partitions used only to drive an output (for example a relay) can be
+    reported as switched on / off instead of armed / disarmed.
+  domain: automation
+  author: tomaszsluszniak
+  source_url: https://github.com/tomaszsluszniak/ha-satel-sia/blob/main/blueprints/automation/satel_sia/notifications.yaml
+  homeassistant:
+    min_version: "2026.10.0"
+  input:
+    panel:
+      name: Panel
+      icon: mdi:shield-home
+      input:
+        port:
+          name: Port
+          description: Port set in the Satel SIA integration.
+          default: 6514
+          selector:
+            number:
+              min: 1
+              max: 65535
+              mode: box
+        account:
+          name: Account
+          description: Account set in the Satel SIA integration (SIA-IP acct in DLOADX).
+          selector:
+            text:
+    notifications:
+      name: Notifications
+      icon: mdi:bell
+      input:
+        notify_action:
+          name: Notify action
+          description: >-
+            Action used to send notifications, e.g. notify.mobile_app_phone or a
+            notify group such as notify.family.
+          default: notify.notify
+          selector:
+            text:
+        language:
+          name: Language
+          default: pl
+          selector:
+            select:
+              options:
+                - label: Polski
+                  value: pl
+                - label: English
+                  value: en
+        critical_alarms:
+          name: Critical alarm notifications
+          description: Alarms break through silent mode and Focus on iOS (requires permission in the app).
+          default: true
+          selector:
+            boolean:
+        notify_arming:
+          name: Notify about arming and disarming
+          default: true
+          selector:
+            boolean:
+    advanced:
+      name: Advanced
+      icon: mdi:cog
+      collapsed: true
+      input:
+        output_partitions:
+          name: Output-only partitions
+          description: >-
+            Partition numbers used only to switch an output. Their arming and
+            disarming is reported as switched on / off.
+          default: []
+          selector:
+            select:
+              multiple: true
+              custom_value: true
+              options: ["1", "2", "3", "4", "5", "6", "7", "8"]
+        silent_codes:
+          name: Codes without notification
+          description: >-
+            SIA codes that never notify. Defaults: test (RP), ends of
+            violations (xR), transmission trouble / restore (YS, YK).
+          default: [RP, BR, TR, FR, PR, HR, MR, UR, YS, YK]
+          selector:
+            select:
+              multiple: true
+              custom_value: true
+              options: [RP, BR, TR, FR, PR, HR, MR, UR, YS, YK, AT, AR, YT, YR]
+        last_code_helper:
+          name: Last code helper
+          description: Optional input_text that stores the last SIA code.
+          default: []
+          selector:
+            entity:
+              domain: input_text
+              multiple: true
+
+mode: queued
+max: 20
+
+trigger_variables:
+  port: !input port
+  account: !input account
+
+triggers:
+  - trigger: event
+    event_type: "sia_event_{{ port | int }}_{{ account | upper }}"
+
+variables:
+  notify_action: !input notify_action
+  language: !input language
+  critical_alarms: !input critical_alarms
+  notify_arming: !input notify_arming
+  output_partitions: !input output_partitions
+  silent_codes: !input silent_codes
+  last_code_helper: !input last_code_helper
+  code: "{{ trigger.event.data.code or '' }}"
+
+conditions:
+  - condition: template
+    value_template: "{{ code != '' and code not in silent_codes }}"
+
+actions:
+  - variables:
+      ri: "{{ (trigger.event.data.ri or '') | string }}"
+      satel: "{{ trigger.event.data.satel or {} }}"
+      sia_description: >-
+        {{ trigger.event.data.sia_code.description if trigger.event.data.sia_code else '' }}
+      codes_alarm: [BA, FA, PA, HA, MA, GA, KA, WA, QA, BV, JA]
+      codes_tamper: [TA, ES, XT]
+      codes_arm: [CL, CG, NL, CA, CS, CQ, CF, CB, CP, NC, NE, NF]
+      codes_disarm: [OP, OG, NP, OA, OS, OQ, OB, "NO"]
+      texts:
+        pl:
+          system: system
+          partition: Strefa {}
+          by: "Przez: {}"
+          armed: "{}: załączenie czuwania"
+          disarmed: "{}: wyłączenie czuwania"
+          switched_on: "{}: włączenie"
+          switched_off: "{}: wyłączenie"
+          alarm: ALARM – {}
+          tamper: Sabotaż – {}
+          info: "Alarm: {}"
+          codes:
+            AT: Awaria zasilania 230 V
+            AR: Powrót zasilania 230 V
+            YT: Awaria akumulatora
+            YR: Akumulator OK
+            YM: Brak akumulatora
+            YP: Awaria zasilacza
+            YQ: Zasilacz OK
+            YS: Problem z transmisją do stacji monitorującej
+            YK: Transmisja do stacji monitorującej przywrócona
+            YC: Awaria komunikacji
+            TA: Sabotaż
+            TR: Koniec sabotażu
+            BA: Alarm włamaniowy
+            FA: Alarm pożarowy
+            PA: Alarm napadowy
+            HA: Napad / przymus
+            MA: Alarm medyczny
+            JA: Sabotaż kodu
+            BC: Alarm skasowany
+            OR: Alarm skasowany
+            CI: Nieudane załączenie czuwania
+            RR: Restart centrali
+            LB: Tryb serwisowy
+            LX: Koniec trybu serwisowego
+            XT: Słaba bateria czujki radiowej
+            XR: Bateria czujki OK
+            RB: Rozpoczęcie zdalnego programowania
+            RS: Zdalne programowanie zakończone
+            JT: Zmiana czasu w centrali
+        en:
+          system: system
+          partition: Partition {}
+          by: "By: {}"
+          armed: "{}: armed"
+          disarmed: "{}: disarmed"
+          switched_on: "{}: on"
+          switched_off: "{}: off"
+          alarm: ALARM – {}
+          tamper: Tamper – {}
+          info: "Alarm: {}"
+          codes: {}
+  - variables:
+      t: "{{ texts[language] if language in texts else texts.en }}"
+      entity_name: >-
+        {%- set ents = integration_entities('satel_sia')
+             | select('match', 'alarm_control_panel\\.')
+             | select('search', '_zone_' ~ ri ~ '_alarm$') | list -%}
+        {%- set n = state_attr(ents[0], 'friendly_name') if ents else none -%}
+        {{ n if n and ' - zone ' not in n else '' }}
+  - variables:
+      partition: >-
+        {{ t.system if ri in ['', '0']
+           else satel.get('partition_name') or entity_name or t.partition.replace('{}', ri) }}
+      who: >-
+        {{ satel.get('source_name')
+           or ('#' ~ satel.number if satel.get('number') and ri not in ['', '0'] else '') }}
+      description: "{{ t.codes.get(code) or sia_description or code }}"
+      is_output: "{{ ri in (output_partitions | map('string') | list) }}"
+  - if:
+      - condition: template
+        value_template: "{{ last_code_helper | length > 0 }}"
+    then:
+      - action: input_text.set_value
+        target:
+          entity_id: !input last_code_helper
+        data:
+          value: "{{ code }}"
+  - choose:
+      - alias: Alarm
+        conditions:
+          - condition: template
+            value_template: "{{ code in codes_alarm }}"
+        sequence:
+          - action: "{{ notify_action }}"
+            data:
+              title: "🚨 {{ t.alarm.replace('{}', partition) }}"
+              message: "{{ description }}{{ ' · ' ~ who if who }}"
+              data:
+                ttl: 0
+                priority: high
+                push:
+                  interruption-level: "{{ 'critical' if critical_alarms else 'time-sensitive' }}"
+                  sound:
+                    name: default
+                    critical: "{{ 1 if critical_alarms else 0 }}"
+                    volume: 1
+      - alias: Tamper
+        conditions:
+          - condition: template
+            value_template: "{{ code in codes_tamper }}"
+        sequence:
+          - action: "{{ notify_action }}"
+            data:
+              title: "⚠️ {{ t.tamper.replace('{}', partition) }}"
+              message: "{{ description }}{{ ' · ' ~ who if who }}"
+              data:
+                ttl: 0
+                priority: high
+                push:
+                  interruption-level: time-sensitive
+      - alias: Arming
+        conditions:
+          - condition: template
+            value_template: "{{ notify_arming and code in codes_arm }}"
+        sequence:
+          - action: "{{ notify_action }}"
+            data:
+              title: >-
+                {{ ('🟢 ' ~ t.switched_on if is_output else '🔒 ' ~ t.armed).replace('{}', partition) }}
+              message: "{{ t.by.replace('{}', who) if who else description }}"
+              data:
+                tag: "satel_sia_{{ ri }}"
+                group: satel_sia
+      - alias: Disarming
+        conditions:
+          - condition: template
+            value_template: "{{ notify_arming and code in codes_disarm }}"
+        sequence:
+          - action: "{{ notify_action }}"
+            data:
+              title: >-
+                {{ ('⚫ ' ~ t.switched_off if is_output else '🔓 ' ~ t.disarmed).replace('{}', partition) }}
+              message: "{{ t.by.replace('{}', who) if who else description }}"
+              data:
+                tag: "satel_sia_{{ ri }}"
+                group: satel_sia
+      - alias: Other events
+        conditions:
+          - condition: template
+            value_template: "{{ code not in codes_arm + codes_disarm }}"
+        sequence:
+          - action: "{{ notify_action }}"
+            data:
+              title: "ℹ️ {{ t.info.replace('{}', description) }}"
+              message: >-
+                {{ code }}{{ ' · ' ~ partition if partition != t.system }}{{ ' · ' ~ who if who }}
+              data:
+                group: satel_sia

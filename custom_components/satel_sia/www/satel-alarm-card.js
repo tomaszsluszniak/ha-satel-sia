@@ -5,7 +5,7 @@
  * https://github.com/tomaszsluszniak/ha-satel-sia
  */
 
-const CARD_VERSION = "1.1.0";
+const CARD_VERSION = "1.2.0";
 const CARD_TAG = "satel-alarm-card";
 
 const I18N = {
@@ -173,11 +173,18 @@ class SatelAlarmCard extends HTMLElement {
     this._config = {
       events: 6,
       hours: 24,
+      show_events: true,
       ...config,
       partitions: config.partitions.map((p) => (typeof p === "string" ? { entity: p } : p)),
     };
     this._historyKey = "";
+    if (this._eventsOpen === undefined) this._eventsOpen = this._config.show_events !== "collapsed";
     this._render();
+  }
+
+  _showEvents() {
+    const v = this._config.show_events;
+    return v !== false && v !== "false" && v !== "hidden" && this._config.events > 0;
   }
 
   set hass(hass) {
@@ -201,7 +208,7 @@ class SatelAlarmCard extends HTMLElement {
   }
 
   getCardSize() {
-    return 3 + Math.ceil(this._config.partitions.length / 2) * 2 + (this._config.events ? 2 : 0);
+    return 3 + Math.ceil(this._config.partitions.length / 2) * 2 + (this._showEvents() && this._eventsOpen ? 2 : 0);
   }
 
   getGridOptions() {
@@ -456,12 +463,17 @@ class SatelAlarmCard extends HTMLElement {
     }
 
     let eventsHtml = "";
-    if (this._config.events > 0) {
-      const evs = this._history ? this._events() : [];
-      const list = evs.length
+    if (this._showEvents()) {
+      const collapsible = this._config.show_events === "collapsed";
+      const open = !collapsible || this._eventsOpen;
+      const evs = open && this._history ? this._events() : [];
+      const head = collapsible
+        ? `<button class="ev-title toggle" data-toggle="events" aria-expanded="${open}"><span>${esc(this._t("events"))}</span><ha-icon icon="${open ? "mdi:chevron-up" : "mdi:chevron-down"}"></ha-icon></button>`
+        : `<div class="ev-title">${esc(this._t("events"))}</div>`;
+      const list = !open ? "" : evs.length
         ? evs.map((e) => `<div class="ev"><span class="ev-t">${esc(this._time(e.t))}</span><ha-icon class="${e.tone}" icon="${e.icon}"></ha-icon><span class="ev-x">${esc(e.text)}${e.who ? ` <span class="ev-who">· ${esc(e.who)}</span>` : ""}</span></div>`).join("")
         : `<div class="empty">${esc(this._history ? this._t("no_events", { h: this._config.hours }) : "…")}</div>`;
-      eventsHtml = `<div class="events"><div class="ev-title">${esc(this._t("events"))}</div>${list}</div>`;
+      eventsHtml = `<div class="events">${head}${list}</div>`;
     }
 
     const title = this._config.title ?? this._t("title");
@@ -513,6 +525,9 @@ class SatelAlarmCard extends HTMLElement {
         .tile.stale { border-style: dashed; }
         .events { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--divider-color); }
         .ev-title { font-size: 12px; color: var(--secondary-text-color); margin-bottom: 6px; }
+        .ev-title.toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; margin-bottom: 0; }
+        .ev-title.toggle[aria-expanded="true"] { margin-bottom: 6px; }
+        .ev-title.toggle ha-icon { --mdc-icon-size: 18px; }
         .ev { display: grid; grid-template-columns: 72px 20px minmax(0, 1fr); align-items: center; gap: 6px; font-size: 13px; padding: 2px 0; }
         .ev-t { color: var(--secondary-text-color); font-variant-numeric: tabular-nums; }
         .ev ha-icon { --mdc-icon-size: 17px; }
@@ -538,6 +553,13 @@ class SatelAlarmCard extends HTMLElement {
     this.shadowRoot.querySelectorAll("[data-entity]").forEach((el) => {
       el.addEventListener("click", () => this._moreInfo(el.dataset.entity));
     });
+    const toggle = this.shadowRoot.querySelector('[data-toggle="events"]');
+    if (toggle) {
+      toggle.addEventListener("click", () => {
+        this._eventsOpen = !this._eventsOpen;
+        this._render();
+      });
+    }
   }
 }
 

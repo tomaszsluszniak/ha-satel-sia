@@ -91,7 +91,9 @@ Stację monitorującą 2 zostaw pustą.
 
 ## 2. Home Assistant → Satel SIA
 
-Ustawienia → Urządzenia i usługi → Dodaj integrację → **Satel SIA**:
+[![Dodaj integrację Satel SIA](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=satel_sia)
+
+albo Ustawienia → Urządzenia i usługi → Dodaj integrację → **Satel SIA**:
 
 | Pole | Wartość |
 |---|---|
@@ -110,6 +112,24 @@ Powstaną encje (port `6514`, konto `1234`):
 - `binary_sensor.6514_1234_zone_N_smoke`, `…_moisture`: dym i zalanie, jeśli centrala je zgłasza.
 
 Każde zdarzenie trafia też na magistralę jako `sia_event_6514_1234`.
+
+Nazwy encji uzupełniają się same: pierwsze zdarzenie z danej strefy przynosi jej nazwę z centrali
+(„SIA – wysyłaj nazwę strefy”) i encja oraz urządzenie dostają tę nazwę. Nazwa nadana ręcznie w HA
+ma pierwszeństwo, a identyfikatory encji się nie zmieniają.
+
+Integracja dodaje też kartę `custom:satel-alarm-card`. Wybierz ją w edytorze dashboardu albo wpisz:
+
+```yaml
+type: custom:satel-alarm-card
+partitions:
+  - entity: alarm_control_panel.6514_1234_zone_1_alarm
+  - entity: alarm_control_panel.6514_1234_zone_2_alarm
+    mode: switch        # strefa tylko do sterowania wyjściem: Włączone / Wyłączone
+    icon: mdi:power
+connectivity: binary_sensor.6514_1234_connectivity
+power: binary_sensor.6514_1234_power
+show_events: true       # true | false | collapsed
+```
 
 ## 3. Najczęstsze kody zdarzeń z VERSA
 
@@ -148,187 +168,55 @@ data:
     description: Account was disarmed
 ```
 
-## 4. Automatyzacja: powiadomienia
+## 4. Powiadomienia (blueprinty)
 
-Wymaga pomocnika `input_text.alarm_ostatni_kod` (Ustawienia → Pomocnicy → Tekst). Jeśli go nie
-chcesz, usuń pierwszą akcję. `notify.all_devices` zamień na swoją usługę powiadomień, np.
-`notify.mobile_app_telefon`.
+Zamiast pisać automatyzacje ręcznie, zaimportuj gotowe blueprinty, a potem utwórz z nich
+automatyzację (Ustawienia → Automatyzacje i sceny → Blueprinty → wybierz blueprint).
+
+### Satel SIA – powiadomienia
+
+[![Importuj blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ftomaszsluszniak%2Fha-satel-sia%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fsatel_sia%2Fnotifications.yaml)
+
+| Pole | Co wpisać |
+|---|---|
+| Port, Account | jak w integracji, np. `6514` i `1234` |
+| Notify action | usługa powiadomień, np. `notify.mobile_app_telefon` albo grupa, np. `notify.rodzina` |
+| Language | `Polski` |
+| Critical alarm notifications | alarmy przebijają tryb cichy na iOS (trzeba na to zezwolić w aplikacji) |
+| Notify about arming and disarming | powiadomienia o załączeniu i wyłączeniu czuwania |
+| Output-only partitions | numery stref, które tylko sterują wyjściem (np. przekaźnikiem); zamiast czuwania przyjdzie „włączenie / wyłączenie” |
+| Codes without notification | kody bez powiadomień; domyślnie test łączności, końce naruszeń i problemy z transmisją (YS/YK) |
+| Last code helper | opcjonalny pomocnik `input_text`, w którym zapisuje się ostatni kod |
+
+Co przychodzi:
+
+- alarm (włamanie, pożar, napad, przymus, medyczny): powiadomienie krytyczne, np. „🚨 ALARM – Parter · Alarm włamaniowy · Salon PIR”;
+- sabotaż: powiadomienie pilne;
+- załączenie i wyłączenie czuwania: „🔒 Parter: załączenie czuwania · Przez: Jan”;
+- strefa „tylko wyjście”: „🟢 Garaż: włączenie”;
+- pozostałe (awaria 230 V, akumulator, restart, tryb serwisowy…): „ℹ️ Alarm: Awaria zasilania 230 V”.
+
+### Satel SIA – brak łączności z centralą
+
+[![Importuj blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Ftomaszsluszniak%2Fha-satel-sia%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fsatel_sia%2Fconnection_lost.yaml)
+
+Powiadamia, gdy centrala nie odzywa się przez ustawiony czas (domyślnie 10 min), np. po
+wyłączeniu monitoringu w DLOADX, przy braku sieci albo awarii centrali, a potem drugi raz, gdy
+łączność wróci. Wybierz sensor łączności (`binary_sensor.6514_1234_connectivity`), czas i usługę
+powiadomień.
+
+## 5. Własne automatyzacje
+
+Każde zdarzenie jest dostępne jako `sia_event_<port>_<konto>`. Najważniejsze pola: `code` (kod
+SIA), `ri` (strefa), `satel.partition_name`, `satel.source_name` (użytkownik lub wejście),
+`satel.number`, `pi` (moduł). Przykład wyzwalacza:
 
 ```yaml
-alias: Alarm – powiadomienia
-description: Powiadomienia ze zdarzeń SIA centrali Satel
-mode: queued
-max: 20
-trace:
-  stored_traces: 20
 triggers:
   - trigger: event
     event_type: sia_event_6514_1234
-variables:
-  kod: "{{ trigger.event.data.code or '' }}"
-  kody_alarm: [BA, FA, PA, HA, MA, GA, KA, WA, QA, BV]
-  kody_sabotaz: [TA, ES, XT]
-  kody_uzbr: [CL, CG, NL, CA, CS, CQ, CF]
-  kody_rozbr: [OP, OG, NP, OA, OS, OQ]
-  kody_cisza: [RP, BR, TR, FR, PR, HR, MR, UR, ""]
-conditions:
-  - condition: template
-    value_template: "{{ kod not in kody_cisza }}"
-actions:
-  # HA zapisuje klucze bloku variables alfabetycznie, dlatego zależne
-  # zmienne liczymy w osobnych krokach
-  - variables:
-      satel: "{{ trigger.event.data.satel or {} }}"
-      ri: "{{ trigger.event.data.ri or '' }}"
-      opisy:
-        AT: Awaria zasilania 230V
-        AR: Powrót zasilania 230V
-        YT: Awaria akumulatora
-        YR: Akumulator OK
-        TA: Sabotaż
-        BA: Alarm włamaniowy
-        FA: Alarm pożarowy
-        PA: Alarm napadowy
-        HA: Napad / przymus
-        MA: Alarm medyczny
-        BC: Alarm skasowany
-        OR: Alarm skasowany
-        CI: Nieudane uzbrojenie
-        YS: Problem z transmisją do stacji monitorującej
-        YK: Transmisja do stacji monitorującej przywrócona
-        RR: Restart centrali
-        LB: Tryb serwisowy
-        LX: Koniec trybu serwisowego
-  - variables:
-      strefa: >-
-        {{ satel.partition_name or ('strefa ' ~ ri if ri not in ['', '0'] else 'system') }}
-      kto: >-
-        {{ satel.source_name or ('nr ' ~ satel.number if satel.number else '') }}
-      opis: >-
-        {{ opisy.get(kod, trigger.event.data.sia_code.description
-           if trigger.event.data.sia_code else kod) }}
-  - action: input_text.set_value
-    target:
-      entity_id: input_text.alarm_ostatni_kod
-    data:
-      value: "{{ kod }}"
-  - choose:
-      - alias: Alarm – krytyczne (przebija tryb cichy)
-        conditions:
-          - condition: template
-            value_template: "{{ kod in kody_alarm }}"
-        sequence:
-          - action: notify.all_devices
-            data:
-              title: "🚨 ALARM – {{ strefa }}"
-              message: "{{ opis }}{{ ': ' ~ kto if kto }}"
-              data:
-                ttl: 0
-                priority: high
-                push:
-                  interruption-level: critical
-                  sound:
-                    name: default
-                    critical: 1
-                    volume: 1
-      - alias: Sabotaż
-        conditions:
-          - condition: template
-            value_template: "{{ kod in kody_sabotaz }}"
-        sequence:
-          - action: notify.all_devices
-            data:
-              title: "⚠️ Sabotaż – {{ strefa }}"
-              message: "{{ opis }}{{ ': ' ~ kto if kto }}"
-              data:
-                ttl: 0
-                priority: high
-                push:
-                  interruption-level: time-sensitive
-      - alias: Uzbrojenie
-        conditions:
-          - condition: template
-            value_template: "{{ kod in kody_uzbr }}"
-        sequence:
-          - action: notify.all_devices
-            data:
-              title: "🔒 {{ strefa }} uzbrojona"
-              message: "{{ 'Przez: ' ~ kto if kto else 'Uzbrojenie' }}"
-              data:
-                tag: "alarm_strefa_{{ ri }}"   # nowe powiadomienie zastępuje poprzednie
-                group: alarm
-      - alias: Rozbrojenie
-        conditions:
-          - condition: template
-            value_template: "{{ kod in kody_rozbr }}"
-        sequence:
-          - action: notify.all_devices
-            data:
-              title: "🔓 {{ strefa }} rozbrojona"
-              message: "{{ 'Przez: ' ~ kto if kto else 'Rozbrojenie' }}"
-              data:
-                tag: "alarm_strefa_{{ ri }}"
-                group: alarm
-    default:
-      - action: notify.all_devices
-        data:
-          title: "ℹ️ Alarm: {{ opis }}"
-          message: >-
-            {{ kod }}{{ ' · ' ~ strefa if strefa != 'system' }}{{ ' · ' ~ kto if kto }}
-          data:
-            group: alarm
-```
-
-## 5. Automatyzacja: brak łączności z centralą
-
-Ostrzega, gdy centrala przestaje wysyłać testy łączności, np. po wyłączeniu monitoringu w
-DLOADX, przy braku sieci albo awarii centrali.
-
-```yaml
-alias: Alarm – brak łączności z centralą
-mode: single
-triggers:
-  - trigger: state
-    entity_id: binary_sensor.6514_1234_connectivity
-    to: "off"
-    for:
-      minutes: 10
-    id: lost
-  - trigger: state
-    entity_id: binary_sensor.6514_1234_connectivity
-    from: "off"
-    to: "on"
-    id: back
-actions:
-  - choose:
-      - conditions:
-          - condition: trigger
-            id: lost
-        sequence:
-          - action: notify.all_devices
-            data:
-              title: "⚠️ Alarm: brak łączności"
-              message: >-
-                Centrala nie odzywa się od 10 minut.
-                Powiadomienia o alarmie nie będą docierać.
-              data:
-                tag: alarm_lacznosc
-                push:
-                  interruption-level: time-sensitive
-      - conditions:
-          - condition: trigger
-            id: back
-          # tylko po realnej utracie, nie po krótkiej przerwie
-          - condition: template
-            value_template: >-
-              {{ (now() - trigger.from_state.last_changed).total_seconds() > 600 }}
-        sequence:
-          - action: notify.all_devices
-            data:
-              title: "✅ Alarm: łączność wróciła"
-              message: Centrala znów wysyła zdarzenia.
-              data:
-                tag: alarm_lacznosc
+    event_data:
+      code: BA
 ```
 
 ## 6. Rozwiązywanie problemów
