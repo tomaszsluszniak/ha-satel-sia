@@ -1,0 +1,81 @@
+name: Release
+
+# Push a tag to publish:  git tag v1.2.0 && git push origin v1.2.0
+# The workflow sets the version in manifest.json and the card, builds
+# satel_sia.zip (what HACS installs) and creates the GitHub release with the
+# matching section of CHANGELOG.md as release notes.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to (re)build, e.g. v1.2.0
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Version from tag
+        run: |
+          VERSION="${TAG#v}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].+)?$ ]]; then
+            echo "::error::Tag $TAG is not a version (expected vX.Y.Z)"; exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Set version in manifest and card
+        run: |
+          C=custom_components/satel_sia
+          jq --arg v "$VERSION" '.version = $v' "$C/manifest.json" > manifest.tmp
+          mv manifest.tmp "$C/manifest.json"
+          sed -i -E "s/^CARD_VERSION: Final = \".*\"/CARD_VERSION: Final = \"$VERSION\"/" "$C/const.py"
+          sed -i -E "s/^const CARD_VERSION = \".*\";/const CARD_VERSION = \"$VERSION\";/" "$C/www/satel-alarm-card.js"
+          grep -H '"version"' "$C/manifest.json"
+          grep -H 'CARD_VERSION' "$C/const.py" "$C/www/satel-alarm-card.js"
+
+      - name: Check
+        run: |
+          python3 -m compileall -q custom_components/satel_sia
+          node --check custom_components/satel_sia/www/satel-alarm-card.js
+
+      - name: Build satel_sia.zip
+        run: |
+          cd custom_components/satel_sia
+          zip -r -q ../../satel_sia.zip . -x '*/__pycache__/*' '*.pyc'
+          cd ../..
+          unzip -l satel_sia.zip | tail -1
+
+      - name: Release notes from CHANGELOG.md
+        run: |
+          awk -v v="$VERSION" '
+            /^## / { if (found) exit; if ($2 == v) { found = 1; next } }
+            found { print }
+          ' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then echo "Release $VERSION" > notes.md; fi
+          cat notes.md
+
+      - name: Create or update the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PRERELEASE=""
+          [[ "$VERSION" == *-* ]] && PRERELEASE="--prerelease"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release edit "$TAG" --notes-file notes.md
+          else
+            gh release create "$TAG" --title "$VERSION" --notes-file notes.md --verify-tag $PRERELEASE
+          fi
+          gh release upload "$TAG" satel_sia.zip --clobber
