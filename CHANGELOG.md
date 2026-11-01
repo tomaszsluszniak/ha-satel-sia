@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.1
+
+- Notifications blueprint: partition numbers and names made of digits are handled as text
+  (Home Assistant turns "2" into a number when it renders variables, so output-only partitions
+  were not recognised and a partition without a name could fail).
+- CI: `actions/checkout` v5.
+
 ## 1.2.0
 
 - Automation blueprints: notifications (alarms, tamper, arming, system events, output-only

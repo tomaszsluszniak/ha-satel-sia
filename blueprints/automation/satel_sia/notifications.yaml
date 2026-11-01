@@ -131,6 +131,8 @@ conditions:
 
 actions:
   - variables:
+      # HA turns "2" into the number 2 when it renders variables, so every use
+      # below converts ri back to text with | string
       ri: "{{ (trigger.event.data.ri or '') | string }}"
       satel: "{{ trigger.event.data.satel or {} }}"
       sia_description: >-
@@ -198,18 +200,18 @@ actions:
       entity_name: >-
         {%- set ents = integration_entities('satel_sia')
              | select('match', 'alarm_control_panel\\.')
-             | select('search', '_zone_' ~ ri ~ '_alarm$') | list -%}
+             | select('search', '_zone_' ~ (ri | string) ~ '_alarm$') | list -%}
         {%- set n = state_attr(ents[0], 'friendly_name') if ents else none -%}
         {{ n if n and ' - zone ' not in n else '' }}
   - variables:
       partition: >-
-        {{ t.system if ri in ['', '0']
-           else satel.get('partition_name') or entity_name or t.partition.replace('{}', ri) }}
+        {{ t.system if (ri | string) in ['', '0']
+           else satel.get('partition_name') or entity_name or t.partition.replace('{}', ri | string) }}
       who: >-
         {{ satel.get('source_name')
-           or ('#' ~ satel.number if satel.get('number') and ri not in ['', '0'] else '') }}
+           or ('#' ~ satel.number if satel.get('number') and (ri | string) not in ['', '0'] else '') }}
       description: "{{ t.codes.get(code) or sia_description or code }}"
-      is_output: "{{ ri in (output_partitions | map('string') | list) }}"
+      is_output: "{{ (ri | string) in (output_partitions | map('string') | list) }}"
   - if:
       - condition: template
         value_template: "{{ last_code_helper | length > 0 }}"
@@ -227,8 +229,8 @@ actions:
         sequence:
           - action: "{{ notify_action }}"
             data:
-              title: "🚨 {{ t.alarm.replace('{}', partition) }}"
-              message: "{{ description }}{{ ' · ' ~ who if who }}"
+              title: "🚨 {{ t.alarm.replace('{}', partition | string) }}"
+              message: "{{ description }}{{ ' · ' ~ (who | string) if who }}"
               data:
                 ttl: 0
                 priority: high
@@ -245,8 +247,8 @@ actions:
         sequence:
           - action: "{{ notify_action }}"
             data:
-              title: "⚠️ {{ t.tamper.replace('{}', partition) }}"
-              message: "{{ description }}{{ ' · ' ~ who if who }}"
+              title: "⚠️ {{ t.tamper.replace('{}', partition | string) }}"
+              message: "{{ description }}{{ ' · ' ~ (who | string) if who }}"
               data:
                 ttl: 0
                 priority: high
@@ -260,8 +262,8 @@ actions:
           - action: "{{ notify_action }}"
             data:
               title: >-
-                {{ ('🟢 ' ~ t.switched_on if is_output else '🔒 ' ~ t.armed).replace('{}', partition) }}
-              message: "{{ t.by.replace('{}', who) if who else description }}"
+                {{ ('🟢 ' ~ t.switched_on if is_output else '🔒 ' ~ t.armed).replace('{}', partition | string) }}
+              message: "{{ t.by.replace('{}', who | string) if who else description }}"
               data:
                 tag: "satel_sia_{{ ri }}"
                 group: satel_sia
@@ -273,8 +275,8 @@ actions:
           - action: "{{ notify_action }}"
             data:
               title: >-
-                {{ ('⚫ ' ~ t.switched_off if is_output else '🔓 ' ~ t.disarmed).replace('{}', partition) }}
-              message: "{{ t.by.replace('{}', who) if who else description }}"
+                {{ ('⚫ ' ~ t.switched_off if is_output else '🔓 ' ~ t.disarmed).replace('{}', partition | string) }}
+              message: "{{ t.by.replace('{}', who | string) if who else description }}"
               data:
                 tag: "satel_sia_{{ ri }}"
                 group: satel_sia
@@ -285,8 +287,8 @@ actions:
         sequence:
           - action: "{{ notify_action }}"
             data:
-              title: "ℹ️ {{ t.info.replace('{}', description) }}"
+              title: "ℹ️ {{ t.info.replace('{}', description | string) }}"
               message: >-
-                {{ code }}{{ ' · ' ~ partition if partition != t.system }}{{ ' · ' ~ who if who }}
+                {{ code }}{{ ' · ' ~ (partition | string) if partition != t.system }}{{ ' · ' ~ (who | string) if who }}
               data:
                 group: satel_sia
