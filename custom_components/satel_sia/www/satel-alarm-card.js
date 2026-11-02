@@ -5,7 +5,7 @@
  * https://github.com/tomaszsluszniak/ha-satel-sia
  */
 
-const CARD_VERSION = "1.3.0";
+const CARD_VERSION = "1.3.1";
 const CARD_TAG = "satel-alarm-card";
 
 const I18N = {

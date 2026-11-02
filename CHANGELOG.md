@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.1
+
+- Card: registered as a Lovelace resource (storage mode), so it is loaded before the dashboard
+  creates its cards. Fixes the card intermittently showing "Configuration error" in the mobile app:
+  it was added with `add_extra_js_url`, which the frontend does not wait for. YAML-mode
+  dashboards keep the previous behaviour.
+
 ## 1.3.0
 
 - Removed output-only partitions: every partition is shown and notified the same way, as the

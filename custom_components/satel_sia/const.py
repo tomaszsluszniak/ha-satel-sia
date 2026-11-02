@@ -41,5 +41,5 @@ ATTR_SATEL_PARTITION: Final = "last_partition_name"
 ATTR_SATEL_SOURCE: Final = "last_source_name"
 SATEL_NAME_LENGTH: Final = 16
 
-CARD_VERSION: Final = "1.3.0"
+CARD_VERSION: Final = "1.3.1"
 CARD_URL: Final = "/satel_sia/satel-alarm-card.js"
